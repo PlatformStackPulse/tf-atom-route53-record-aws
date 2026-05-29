@@ -1,5 +1,5 @@
 resource "aws_route53_record" "this" {
-  count = module.this.enabled && var.alias_name == null ? 1 : 0
+  count = module.this.enabled && !var.is_alias ? 1 : 0
 
   zone_id = var.zone_id
   name    = var.record_name
@@ -9,7 +9,7 @@ resource "aws_route53_record" "this" {
 }
 
 resource "aws_route53_record" "alias" {
-  count = module.this.enabled && var.alias_name != null ? 1 : 0
+  count = module.this.enabled && var.is_alias ? 1 : 0
 
   zone_id = var.zone_id
   name    = var.record_name

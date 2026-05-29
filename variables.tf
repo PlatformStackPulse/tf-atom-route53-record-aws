@@ -49,6 +49,12 @@ variable "alias_zone_id" {
   default     = null
 }
 
+variable "is_alias" {
+  description = "Whether this is an alias record. Must be set explicitly (not derived from alias_name) to avoid count depends on apply-time values."
+  type        = bool
+  default     = false
+}
+
 variable "evaluate_target_health" {
   description = "Whether to evaluate target health for alias"
   type        = bool
