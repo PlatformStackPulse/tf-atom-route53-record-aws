@@ -3,9 +3,50 @@
 [![CI](https://github.com/PlatformStackPulse/tf-atom-route53-record-aws/actions/workflows/ci.yml/badge.svg)](https://github.com/PlatformStackPulse/tf-atom-route53-record-aws/actions/workflows/ci.yml)
 ![Terraform](https://img.shields.io/badge/terraform-%3E%3D1.6.0-blueviolet)
 
-## Purpose
+Terraform atom that manages a single AWS Route53 DNS record — either a standard value record (A/AAAA/CNAME/MX/TXT/…) or an alias record pointing at an AWS target such as CloudFront, ALB, or an S3 website endpoint.
 
-Terraform atom: AWS Route53 Record - creates a DNS record.
+## Features
+
+- **Standard records** — create any supported record type (`A`, `AAAA`, `CNAME`, `MX`, `TXT`, `NS`, `SOA`, `SRV`, `PTR`, `CAA`) with an explicit `ttl` and a list of `records` values.
+- **Alias records** — set `is_alias = true` to emit an `alias { … }` block targeting an AWS resource (`alias_name` + `alias_zone_id`), with optional `evaluate_target_health`.
+- **Enable / disable switch** — the tf-label `enabled` flag toggles all resources on or off; when disabled the module creates nothing and outputs resolve to `null`.
+- **Input validation** — `zone_id` and `record_name` must be non-empty and `record_type` is constrained to valid DNS record types.
+- **tf-label context** — full [tf-label](https://github.com/PlatformStackPulse/tf-label) naming/tagging context is available for chaining with the rest of the atom fleet.
+
+## Usage
+
+```hcl
+module "www_record" {
+  source = "git::https://github.com/PlatformStackPulse/tf-atom-route53-record-aws.git?ref=v1.0.0"
+
+  namespace = "eg"
+  stage     = "prod"
+  name      = "www"
+
+  zone_id     = "Z1234567890ABCDEFGHIJ"
+  record_name = "www.example.com"
+  record_type = "A"
+  ttl         = 300
+  records     = ["192.0.2.10"]
+}
+
+# Alias record (e.g. pointing an apex domain at a CloudFront distribution)
+module "apex_alias" {
+  source = "git::https://github.com/PlatformStackPulse/tf-atom-route53-record-aws.git?ref=v1.0.0"
+
+  namespace = "eg"
+  stage     = "prod"
+  name      = "apex"
+
+  zone_id     = "Z1234567890ABCDEFGHIJ"
+  record_name = "example.com"
+  record_type = "A"
+
+  is_alias      = true
+  alias_name    = "d111111abcdef8.cloudfront.net"
+  alias_zone_id = "Z2FDTNDATAQYW2"
+}
+```
 
 ## Module Documentation
 
@@ -73,3 +114,18 @@ Terraform atom: AWS Route53 Record - creates a DNS record.
 | <a name="output_fqdn"></a> [fqdn](#output\_fqdn) | FQDN of the record |
 | <a name="output_name"></a> [name](#output\_name) | Name of the record |
 <!-- END_TF_DOCS -->
+
+## Tests
+
+Unit tests use the Terraform native test framework with a mocked AWS provider (no real AWS calls, no credentials required). They assert on plan-known values only — the tf-label `enabled` flag and resource counts for the standard, alias, and disabled paths.
+
+```bash
+# Run the unit tests
+terraform init -backend=false
+terraform test -test-directory=tests/unit
+
+# Or via the Makefile
+make test-unit
+```
+
+Integration tests (which provision real Route53 records and require AWS credentials) live under `tests/integration` and run with `terraform test -test-directory=tests/integration` / `make test-integration`.
